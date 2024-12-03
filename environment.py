@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 class Environment:
-    def __init__(self, csv_file):
+    def __init__(self):
         self.data = self.preprocess_data()
 
     def preprocess_data(self):
