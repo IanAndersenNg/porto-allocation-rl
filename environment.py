@@ -55,6 +55,7 @@ class Environment:
         log_return = np.log(1 + portfolio_return)
 
         # assume risk-free rate of 0.02 for Sharpe ratio calculation
-        sharpe_ratio = (log_return - 0.02) / (np.std(returns) if np.std(returns) > 0 else 1)
-        reward = log_return + sharpe_ratio  # TODO - POC only, calculations to be finalized later
+        # sharpe_ratio = (log_return - 0.02) / (np.std(returns) if np.std(returns) > 0 else 1)
+        # reward = log_return + sharpe_ratio  # TODO - POC only, calculations to be finalized later
+        reward = log_return
         return reward
