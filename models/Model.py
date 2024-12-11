@@ -1,10 +1,12 @@
 
 class Model:
-    def __init__(self, state_space, action_space, gamma=0.99):
+    def __init__(self, state_space, action_space, gamma=0.99, environment = None):
         self.state_space = state_space
         self.action_space = action_space
         self.gamma = gamma
         self.policy = self.initialize_policy()
+        self.environment = environment
+        self.action_set = [[25, 75], [50,50], [75,25], [0,100], [100,0]]
 
     def initialize_policy(self):
         raise NotImplementedError("This method should be overridden by subclasses")
