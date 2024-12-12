@@ -1,18 +1,19 @@
 import pandas as pd
 import numpy as np
 
-def preprocess_data():
-    nasdaq_etf = pd.read_excel("./data/data.xlsx", skiprows=4, usecols=[0, 1], names=["Date", "NASDAQ_Returns"])
-    nasdaq_etf["NASDAQ_Returns"] = pd.to_numeric(nasdaq_etf["NASDAQ_Returns"], errors="coerce")
-    nasdaq_etf["Date"] = pd.to_datetime(nasdaq_etf["Date"], errors="coerce")
-    nasdaq_etf = nasdaq_etf.dropna().reset_index(drop=True)
+def preprocess_data(datafile):
+    # datafile: "./data/data1.xlsx"
+    agg_etf = pd.read_excel(datafile, skiprows=4, usecols=[8, 9], names=["Date", "AGG_Returns"])
+    agg_etf["AGG_Returns"] = pd.to_numeric(agg_etf["AGG_Returns"], errors="coerce")
+    agg_etf["Date"] = pd.to_datetime(agg_etf["Date"], errors="coerce")
+    agg_etf = agg_etf.dropna().reset_index(drop=True)
 
-    em_etf = pd.read_excel("./data/data.xlsx", skiprows=4, usecols=[2, 3], names=["Date", "MSCI_Returns"])
+    em_etf = pd.read_excel(datafile, skiprows=4, usecols=[0, 1], names=["Date", "MSCI_Returns"])
     em_etf["MSCI_Returns"] = pd.to_numeric(em_etf["MSCI_Returns"], errors="coerce")
     em_etf["Date"] = pd.to_datetime(em_etf["Date"], errors="coerce")
     em_etf = em_etf.dropna().reset_index(drop=True)
 
-    return pd.merge(nasdaq_etf, em_etf, on="Date", how="inner")
+    return pd.merge(agg_etf, em_etf, on="Date", how="inner")
 
 
 
