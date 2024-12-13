@@ -1,4 +1,4 @@
-from Model import Model
+from models.model import Model
 from environment import Environment
 import numpy as np
 import pandas as pd
@@ -14,12 +14,11 @@ A monte carlo model with epsilon greedy policy.
 
 '''
 
-class MonteCarloRL(Model):
-    def __init__(self, cleaned_data, actions, n_episodes=1000, epsilon=0.1):
+class MonteCarlo(Model):
+    def __init__(self, cleaned_data, actions, epsilon=0.1):
         super().__init__(state_space=None, action_space=actions)
         self.cleaned_data = cleaned_data
         self.actions = actions
-        self.n_episodes = n_episodes
         self.epsilon = epsilon
         self.nasdaq_train, self.msci_train, self.nasdaq_test, self.msci_test = self.split_data()
     
@@ -42,12 +41,16 @@ class MonteCarloRL(Model):
         return nasdaq_train, msci_train, nasdaq_test, msci_test
 
 
-    def train(self, episodes=None):
+    def train(self, n_episodes):
+        '''
+        train the monte carlo model for n_episodes and return the results.
+        '''
+
         results = []
         best_action_index = 0
         n_steps = len(self.nasdaq_train)
 
-        for episode in range(self.n_episodes):
+        for episode in range(n_episodes):
             portfolio_value = 100  # Initial portfolio value
             episode_rewards = []
 
@@ -125,7 +128,7 @@ if __name__ == "__main__":
     cleaned_data = environment.data
 
     actions = [(0, 100), (25, 75), (50, 50), (75, 25), (100, 0)]
-    monte_carlo = MonteCarloRL(cleaned_data, actions, n_episodes=1000, epsilon=0.1)
+    monte_carlo = MonteCarlo(cleaned_data, actions, epsilon=0.1)
 
     # Train the model
     results_df, optimal_action = monte_carlo.train()
@@ -134,7 +137,7 @@ if __name__ == "__main__":
     test_portfolio_value, rewards = monte_carlo.test(optimal_action)
 
     # Visualize results
-    MonteCarloRL.visualize_results(results_df, rewards, test_portfolio_value)
+    MonteCarlo.visualize_results(results_df, rewards, test_portfolio_value)
 
     # Print final portfolio value for test data
     print(f"Final portfolio value on test data: {test_portfolio_value}")

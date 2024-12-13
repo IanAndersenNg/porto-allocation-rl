@@ -6,7 +6,6 @@ class Model:
         self.gamma = gamma
         self.policy = self.initialize_policy()
         self.environment = environment
-        self.action_set = [[25, 75], [50,50], [75,25], [0,100], [100,0]]
 
     def initialize_policy(self):
         raise NotImplementedError("This method should be overridden by subclasses")
