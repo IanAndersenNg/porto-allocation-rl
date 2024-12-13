@@ -31,7 +31,7 @@ class MonteCarlo(Model):
     def choose_action(self, state):
         if random.uniform(0, 1) < self.epsilon:
             return random.randint(0, len(self.actions) - 1)  # Explore
-        return self.calculate_average_reward(state) # Exploit
+        return np.argmax(self.calculate_average_reward(state)) # Exploit
 
     def update_policy(self, state, action, reward):
         reward_sum, count = self.state_action_dict[(state, action)]
@@ -90,5 +90,5 @@ if __name__ == "__main__":
     test_env = Environment(
         data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")])
 
-    results_df, optimal_action = monte_carlo.train(n_episodes= 1000, env=train_env)
-    test_portfolio_value, rewards = monte_carlo.test(optimal_action, test_env)
+    optimum_action_dict = monte_carlo.train(n_episodes= 1000, env=train_env)
+    rewards = monte_carlo.test(optimum_action_dict, test_env)
