@@ -1,4 +1,3 @@
-
 class Model:
     def __init__(self, state_space, action_space, gamma=0.99):
         self.state_space = state_space
