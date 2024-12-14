@@ -1,140 +1,142 @@
-import sys
-sys.path.append('../')
+#import sys
+#sys.path.append('../')
 
+from datetime import datetime
 import pandas as pd
 import numpy as np
+import random
 import matplotlib.pyplot as plt
 from Model import Model
 from environment import Environment
-# Environment class from your provided code
-'''
-class Environment:
-    def __init__(self):
-        self.data = self.preprocess_data()
 
-    def preprocess_data(self):
-        nasdaq_etf = pd.read_excel('data.xlsx', skiprows=4, usecols=[0, 1], names=["Date", "NASDAQ_Returns"])
-        nasdaq_etf["NASDAQ_Returns"] = pd.to_numeric(nasdaq_etf["NASDAQ_Returns"], errors="coerce")
-        nasdaq_etf["Date"] = pd.to_datetime(nasdaq_etf["Date"], errors="coerce")
-        nasdaq_etf = nasdaq_etf.dropna().reset_index(drop=True)
-
-        em_etf = pd.read_excel('data.xlsx', skiprows=4, usecols=[2, 3], names=["Date", "MSCI_Returns"])
-        em_etf["MSCI_Returns"] = pd.to_numeric(em_etf["MSCI_Returns"], errors="coerce")
-        em_etf["Date"] = pd.to_datetime(em_etf["Date"], errors="coerce")
-        em_etf = em_etf.dropna().reset_index(drop=True)
-
-        return pd.merge(nasdaq_etf, em_etf, on="Date", how="inner")
-
-    def _get_row(self, date=None, index=None):
-        if index is not None and date is not None:
-            raise ValueError("Provide either 'index' or 'date', not both.")
-        if index is not None:
-            return self.data.iloc[index]
-        if date is not None:
-            return self.data.loc[self.data["Date"] == date]
-        raise ValueError("Either 'index' or 'date' must be provided.")
-
-    def get_state(self, date=None, index=None):
-        row = self._get_row(date=date, index=index)
-        returns = row.iloc[1:3]
-        state = "".join(["1" if r > 0 else "0" for r in returns])
-        return state
-
-    def get_reward(self, action, date=None, index=None):
-        row = self._get_row(date=date, index=index)
-        returns = row.iloc[1:]
-        portfolio_return = np.dot(action, returns)
-        portfolio_return = max(portfolio_return, -0.999)  # 限制下界，避免log(0)
-        log_return = np.log(1 + portfolio_return)
-        return log_return
-'''
 
 class Q_learning(Model):
-    def __init__(self, state_space, action_space, num_episodes, learning_rate, discount_factor, exploration_rate, exploration_decay, min_exploration_rate):
+    def __init__(self, state_space, action_space, num_episodes, learning_rate, discount_factor, exploration_rate, min_exploration_rate):
         super().__init__(state_space, action_space, discount_factor)
+        self.state_space = state_space
+        self.action_space = action_space
         self.num_episodes = num_episodes
         self.learning_rate = learning_rate
         self.discount_factor = discount_factor
         self.exploration_rate = exploration_rate
-        self.exploration_decay = exploration_decay
         self.min_exploration_rate = min_exploration_rate
+        self.q_table = np.zeros((len(state_space), len(action_space)))
+        self.reward_trace = []
 
-# Q-learning parameters
-num_episodes = 500
-learning_rate = 0.01
-discount_factor = 0.99
-exploration_rate = 0.5
-exploration_decay = 0.99
-min_exploration_rate = 0.01
+    def initialize_policy(self):
+        return np.zeros((len(state_space), len(action_space)))
 
+    def generate_episode(self, env, min_length=4):
+        # Randomly generate the initial state (for each episode) beginning with the first period to period k−4.
+        start = random.randint(0, len(env.data) - min_length)
+        end = random.randint(start + min_length, len(env.data))
+        return [i for i in range(start, end)]
+
+    def get_state_index(self, state_space):
+        return self.state_space.index(state_space)
+
+    def get_action_index(self, action_space):
+        return self.action_space.index(action_space)
+
+    def choose_action(self, state_index):
+        if np.random.rand() < self.exploration_rate:
+            return np.random.choice(len(self.action_space))
+        else:
+            return np.argmax(self.q_table[state_index])  # choose action with max Q
+
+    def update_q_value(self, state_index, action_index, reward, next_state_index):
+
+        max_future_q = np.max(self.q_table[next_state_index])
+        current_q = self.q_table[state_index][action_index]
+        # refresh formula
+        self.q_table[state_index][action_index] = current_q + self.learning_rate * (
+            reward + self.discount_factor * max_future_q - current_q
+        )
+
+        # self.q_table[state_index] /= np.sum(self.q_table[state_index])
+
+    def train(self, episode, env):
+        total_reward = 0
+        for i in range(len(episode) - 1):
+            state_index = episode[i]
+
+            if state_index >= len(self.state_space):
+                print(f"Error: state_index {state_index} is out of bounds.")
+                continue
+
+            state = self.state_space[state_index]
+            next_state_index = episode[i + 1]
+
+            if next_state_index >= len(self.state_space):
+                print(f"Error: next_state_index {next_state_index} is out of bounds.")
+                continue
+
+            next_state = self.state_space[next_state_index]
+
+            action_index = self.choose_action(state_index)  # Choose an action based on the current state index
+            action = self.action_space[action_index]  # Get the corresponding action
+            reward = env.get_reward(action, next_state)  # Get the reward
+            total_reward += reward  # Accumulate the reward
+
+            # Update Q-values
+            self.update_q_value(state_index, action_index, reward, next_state_index)
+
+        self.reward_trace.append(total_reward / len(episode))
+
+    def learn(self, env, n_episodes=100, verbose_freq=10):
+
+        for i in range(n_episodes):
+            episode = self.generate_episode(env)  # generate an episode
+            self.train(episode, env)  # train in that episode
+
+    def test(self, env):
+        action_index = self.choose_action(0)
+        action = self.action_space[action_index]
+        result = env.data[["Date"]]
+
+        result["Return"] = (
+            action[0] * env.data["NASDAQ_Returns"]
+            + action[1] * env.data["MSCI_Returns"]
+        )
+        return result
+
+all_actions = []
 env = Environment()
 
-# Initialize Q-table
-q_table = {}
-for row in env.data.itertuples(index=False):
-    state = "".join(["1" if r > 0 else "0" for r in [row.NASDAQ_Returns, row.MSCI_Returns]])
-    q_table[state] = [0, 0]  # Two actions: invest in NASDAQ or MSCI
+if __name__ == "__main__":
+    data = env.preprocess_data()
+    print(data.columns)
 
-# Record metrics
-all_actions = []
-all_rewards = []
-episode_rewards = []
+    data[["NASDAQ_Returns", "MSCI_Returns"]] = (
+            data[["NASDAQ_Returns", "MSCI_Returns"]] / 100)  # rescale for pytoch linear
 
-# Training loop
-for episode in range(num_episodes):
-    state = env.get_state(index=0)
-    total_reward = 0
+    train_env = Environment()
+    test_env = Environment()
 
-    for t in range(len(env.data)):
-        # Choose action using epsilon-greedy
-        if np.random.rand() < exploration_rate:
-            action_index = np.random.choice(len(q_table[state]))
-        else:
-            action_index = np.argmax(q_table[state])
+    state_space = [(0, 100), (25, 75), (50, 50), (75, 25), (100, 0)]
+    action_space = [(0, 100), (25, 75), (50, 50), (75, 25), (100, 0)]
 
-        action = [1 if i == action_index else 0 for i in range(2)]
+    #parameters
+    num_episodes = 500
+    learning_rate = 0.01
+    discount_factor = 0.99
+    exploration_rate = 0.5
+    min_exploration_rate = 0.01
 
-        # Record action
-        all_actions.append(action_index)
+    q_learning_model = Q_learning(
+        state_space=state_space,
+        action_space=action_space,
+        num_episodes=num_episodes,
+        learning_rate=learning_rate,
+        discount_factor=discount_factor,
+        exploration_rate=exploration_rate,
+        min_exploration_rate=min_exploration_rate
+    )
 
-        # Get reward and next state
-        reward = env.get_reward(action=action, index=t)
-        next_state = env.get_state(index=t + 1) if t + 1 < len(env.data) else None
 
-        # Update Q-value
-        if next_state is not None:
-            best_next_action = np.argmax(q_table[next_state])
-            q_table[state][action_index] += learning_rate * (
-                reward + discount_factor * q_table[next_state][best_next_action] - q_table[state][action_index]
-            )
-        else:
-            q_table[state][action_index] += learning_rate * (reward - q_table[state][action_index])
+    # q_learning_model.update_q_value(state_index, action_index, reward, next_state_index)
+    q_learning_model.learn(train_env, n_episodes = num_episodes, verbose_freq = 10)
+    print("Q-table after training:")
+    print(q_learning_model.q_table)
 
-        # Update state and total reward
-        state = next_state
-        total_reward += reward
 
-    # Decay exploration rate
-    exploration_rate = max(min_exploration_rate, exploration_rate * exploration_decay)
-    episode_rewards.append(total_reward)
-
-# Visualization functions
-def plot_rewards(rewards):
-    plt.plot(range(len(rewards)), rewards, label='Episode Rewards', color='blue')
-    plt.xlabel('Episode')
-    plt.ylabel('Total Reward')
-    plt.title('Total Rewards per Episode')
-    plt.legend()
-    plt.show()
-
-def plot_action_distribution(actions):
-    unique, counts = np.unique(actions, return_counts=True)
-    plt.bar(unique, counts, color='skyblue', tick_label=['NASDAQ', 'MSCI'])
-    plt.xlabel('Asset')
-    plt.ylabel('Action Count')
-    plt.title('Action Distribution Across Episodes')
-    plt.show()
-
-# Plot results
-plot_rewards(episode_rewards)
-plot_action_distribution(all_actions)
