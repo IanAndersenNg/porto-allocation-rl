@@ -32,12 +32,6 @@ class Q_learning(Model):
         end = random.randint(start + min_length, len(env.data))
         return [i for i in range(start, end)]
 
-    def get_state_index(self, state_space):
-        return self.state_space.index(state_space)
-
-    def get_action_index(self, action_space):
-        return self.action_space.index(action_space)
-
     def choose_action(self, state_index):
         if np.random.rand() < self.exploration_rate:
             return np.random.choice(len(self.action_space))
