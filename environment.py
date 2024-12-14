@@ -26,6 +26,8 @@ class Environment:
         self.data = data
         self.asset_names = [col for col in data.columns if col != "Date"]
         self.use_sharpe_ratio_reward = use_sharpe_ratio_reward
+        self.prev_A = 0
+        self.prev_B = 0
 
     def _get_row(self, date=None, index=None):
         if index is not None and date is not None:
@@ -59,8 +61,6 @@ class Environment:
         """
         Returns portfolio return or Sharpe ratio as the reward
 
-        Returns log return + Sharpe ratio as the reward
-
         Inputs:
             action (list of numbers): Portfolio weights for each asset.
             index (int): Row index
@@ -70,6 +70,19 @@ class Environment:
         #         returns = row.iloc[1:]
         returns = self.get_continuous_state(date=date, index=index)
         portfolio_return = np.dot(action, returns)
-        sharpe_ratio = (portfolio_return - 0.02) / (np.std(returns) if np.std(returns) > 0 else 1)
+
+        # time scale of around 1 decade, following eta value of paper
+        eta = 0.1
+        A_t = eta * returns + (1 - eta) * self.prev_A
+        B_t = eta * returns ** 2 + (1 - eta) * self.prev_B
+
+        # deltas A and B are referenced from the paper (equation 3.3)
+        delta_A = returns - self.prev_A
+        delta_B = returns ** 2 - self.prev_B
+
+        dsr_denominator = (self.prev_B - self.prev_A ** 2) ** (3 / 2)
+        diff_sharpe_ratio = (self.prev_B * delta_A - 0.5 * self.prev_A * delta_B) / dsr_denominator if dsr_denominator != 0 else 0
+        self.prev_A = A_t
+        self.prev_B = B_t
         # I just found out for the continuous agent, the reward is simply the weighted sum
-        return sharpe_ratio if self.use_sharpe_ratio_reward else portfolio_return
+        return diff_sharpe_ratio if self.use_sharpe_ratio_reward else portfolio_return
