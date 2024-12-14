@@ -22,9 +22,10 @@ def preprocess_data():
 
 
 class Environment:
-    def __init__(self, data):
+    def __init__(self, data, use_sharpe_ratio_reward = False):
         self.data = data
         self.asset_names = [col for col in data.columns if col != "Date"]
+        self.use_sharpe_ratio_reward = use_sharpe_ratio_reward
 
     def _get_row(self, date=None, index=None):
         if index is not None and date is not None:
@@ -56,6 +57,8 @@ class Environment:
 
     def get_reward(self, action, date=None, index=None):
         """
+        Returns portfolio return or Sharpe ratio as the reward
+
         Returns log return + Sharpe ratio as the reward
 
         Inputs:
@@ -67,12 +70,6 @@ class Environment:
         #         returns = row.iloc[1:]
         returns = self.get_continuous_state(date=date, index=index)
         portfolio_return = np.dot(action, returns)
+        sharpe_ratio = (portfolio_return - 0.02) / (np.std(returns) if np.std(returns) > 0 else 1)
         # I just found out for the continuous agent, the reward is simply the weighted sum
-        return portfolio_return
-        log_return = np.log(1 + portfolio_return)
-
-        # assume risk-free rate of 0.02 for Sharpe ratio calculation
-        # sharpe_ratio = (log_return - 0.02) / (np.std(returns) if np.std(returns) > 0 else 1)
-        # reward = log_return + sharpe_ratio  # TODO - POC only, calculations to be finalized later
-        reward = log_return
-        return reward
+        return sharpe_ratio if self.use_sharpe_ratio_reward else portfolio_return
