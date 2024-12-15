@@ -1,10 +1,6 @@
-from models.model import Model
-from datetime import datetime
-from environment import Environment, preprocess_data
+from .model import Model
 import numpy as np
-import pandas as pd
 import random
-import matplotlib.pyplot as plt
 
 '''
 A monte carlo model with epsilon greedy policy.
@@ -20,18 +16,17 @@ class MonteCarlo(Model):
     def __init__(self, cleaned_data, actions, epsilon=0.1, state_space = ['11', '10', '01', '00']):
         super().__init__(state_space = state_space, action_space = actions)
         self.cleaned_data = cleaned_data
-        self.actions = actions
         self.epsilon = epsilon
         self.state_action_dict = self.initialize_policy()
 
     def initialize_policy(self):
         return {(state, action): (0, 0) 
                 for state in self.state_space
-                for action in range(len(self.actions))}
+                for action in range(len(self.action_space))}
 
     def choose_action(self, state):
         if random.uniform(0, 1) < self.epsilon:
-            return random.randint(0, len(self.actions) - 1)  # Explore
+            return random.randint(0, len(self.action_space) - 1)  # Explore
         return np.argmax(self.calculate_average_reward(state)) # Exploit
 
     def update_policy(self, state, action, reward):
@@ -43,10 +38,10 @@ class MonteCarlo(Model):
 
         for episode in range(episodes):
             for t in range(n_steps - 1):
-                state = train_env.get_state(index = t)
+                state = train_env.get_discrete_state(index = t)
 
                 action_index = self.choose_action(state)
-                action = self.actions[action_index]
+                action = self.action_space[action_index]
 
                 reward = train_env.get_reward(action, index =  t + 1)
                 self.update_policy(state, action_index, reward)
@@ -59,39 +54,21 @@ class MonteCarlo(Model):
         return optimum_action_dict
 
     
+    # returns the optimum action of each state
     def test(self, optimum_action_dict, test_env):
-        rewards = []
+        res_actions = []
 
         for t in range(len(test_env.data) - 1):            
-            state = test_env.get_state(index = t)
-
+            state = test_env.get_discrete_state(index = t)
             action_index = optimum_action_dict[state]
-            action = self.actions[action_index]
+            action = self.action_space[action_index]
+            res_actions.append(action)
 
-            # get reward from next day
-            reward = test_env.get_reward(action, index = t + 1)
-            rewards.append(reward)
-
-        return rewards
+        return res_actions
     
-
+    # cum sum divided by count
     def calculate_average_reward(self, state):
         return [
             self.state_action_dict[(state, action)][0] / max(1, self.state_action_dict[(state, action)][1])
-            for action in range(len(self.actions))
+            for action in range(len(self.action_space))
         ]
-
-
-if __name__ == "__main__":
-    
-    data = preprocess_data()
-    actions = [(0, 100), (25, 75), (50, 50), (75, 25), (100, 0)]
-    monte_carlo = MonteCarlo(data, actions, epsilon=0.1)
-
-    train_env = Environment(
-        data[data["Date"] < datetime.strptime("2020-01-01", "%Y-%m-%d")])
-    test_env = Environment(
-        data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")])
-
-    optimum_action_dict = monte_carlo.train(n_episodes= 1000, env=train_env)
-    rewards = monte_carlo.test(optimum_action_dict, test_env)
