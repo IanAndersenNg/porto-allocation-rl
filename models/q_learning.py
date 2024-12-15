@@ -28,6 +28,7 @@ class Q_learning(Model):
         self.min_exploration_rate = min_exploration_rate
         self.q_table = np.zeros((len(state_space), len(action_space)))
         self.reward_trace = []
+        self.episode_reward = []
 
         print(f"State space length: {len(self.state_space)}")
 
@@ -66,7 +67,6 @@ class Q_learning(Model):
 
             next_state_index = episode[i + 1] % len(self.state_space)
 
-
             if next_state_index >= len(self.state_space):
                 print(f"Error: next_state_index {next_state_index} is out of bounds.")
                 continue
@@ -86,6 +86,7 @@ class Q_learning(Model):
             self.update_q_value(state_index, action_index, reward, next_state_index)
 
         self.reward_trace.append(total_reward / len(episode))
+        self.episode_reward.append(total_reward)
 
     def learn(self, env, n_episodes=100):
         for episode_idx in range(n_episodes):
@@ -105,6 +106,7 @@ class Q_learning(Model):
                 )
 
         print("Learning complete.")
+        self.plot_rewards()
 
     def test(self, env):
         action_index = self.choose_action(0)
@@ -115,6 +117,17 @@ class Q_learning(Model):
             action[0] * env.data["AGG_Returns"] + action[1] * env.data["MSCI_Returns"]
         )
         return result
+
+    def plot_rewards(self):
+        # Plotting the total reward per episode
+        plt.figure(figsize=(10, 6))
+        plt.plot(range(len(self.episode_reward)), self.episode_reward, label="Episode Rewards", color='b')
+        plt.xlabel('Episode')
+        plt.ylabel('Total Reward')
+        plt.title('Reward Curve Over Episodes')
+        plt.grid(True)
+        plt.legend()
+        plt.show()
 
 
 if __name__ == "__main__":
