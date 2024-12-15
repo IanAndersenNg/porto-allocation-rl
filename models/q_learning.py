@@ -4,7 +4,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 from Model import Model
-from environment import Environment
+from environment import Environment, preprocess_data
 
 class Q_learning(Model):
     def __init__(self, state_space, action_space, num_episodes, learning_rate, discount_factor, exploration_rate, min_exploration_rate):
@@ -103,9 +103,10 @@ class Q_learning(Model):
 
 
 if __name__ == "__main__":
-    env = Environment()
 
-    data = env.preprocess_data()
+
+    data = preprocess_data()
+    env = Environment(data=data)
     print("Columns:", data.columns)
 
     data[["AGG_Returns", "MSCI_Returns"]] = data[["AGG_Returns", "MSCI_Returns"]]
