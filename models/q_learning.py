@@ -37,9 +37,7 @@ class Q_learning(Model):
     def generate_episode(self, env, min_length=4):
         start = random.randint(0, len(env.data) - min_length)
         end = random.randint(start + min_length, len(env.data))
-        episode = [i % len(self.state_space) for i in range(start, end)]
-        print(f"Generated episode: {episode}")
-        return episode
+        return [i for i in range(start, end)]
 
     def choose_action(self, state_index):
         state_index = state_index % len(self.state_space)
@@ -66,21 +64,22 @@ class Q_learning(Model):
                 print(f"Error: state_index {state_index} is out of bounds.")
                 continue
 
-            state = self.state_space[state_index]
             next_state_index = episode[i + 1] % len(self.state_space)
+
 
             if next_state_index >= len(self.state_space):
                 print(f"Error: next_state_index {next_state_index} is out of bounds.")
                 continue
 
-            next_state = self.state_space[next_state_index]
+            state = env.get_continuous_state(index=episode[i])
+            next_state = env.get_continuous_state(index=episode[i + 1])
 
             # Choose an action based on the current state index
             action_index = self.choose_action(state_index)
             # Get the corresponding action
             action = self.action_space[action_index]
             # env.get_reward(action, i + 1)
-            reward = env.get_reward(action, next_state)  # Get the reward
+            reward = env.get_reward(action, index = episode[i+1])  # Get the reward
             total_reward += reward  # Accumulate the reward
 
             # Update Q-values
