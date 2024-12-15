@@ -6,8 +6,18 @@ import matplotlib.pyplot as plt
 from Model import Model
 from environment import Environment, preprocess_data
 
+
 class Q_learning(Model):
-    def __init__(self, state_space, action_space, num_episodes, learning_rate, discount_factor, exploration_rate, min_exploration_rate):
+    def __init__(
+        self,
+        state_space,
+        action_space,
+        num_episodes,
+        learning_rate,
+        discount_factor,
+        exploration_rate,
+        min_exploration_rate,
+    ):
         super().__init__(state_space, action_space, discount_factor)
         self.state_space = state_space
         self.action_space = action_space
@@ -36,7 +46,8 @@ class Q_learning(Model):
         if np.random.rand() < self.exploration_rate:
             return np.random.choice(len(self.action_space))
         else:
-            return np.argmax(self.q_table[state_index])  # choose action with max Q
+            # choose action with max Q
+            return np.argmax(self.q_table[state_index])
 
     def update_q_value(self, state_index, action_index, reward, next_state_index):
         max_future_q = np.max(self.q_table[next_state_index])
@@ -48,6 +59,7 @@ class Q_learning(Model):
     def train(self, episode, env):
         total_reward = 0
         for i in range(len(episode) - 1):
+            # episode裡面是一堆data index, 給定一個index, 使用env.get_discrete_state 得到 00, 01, 10, 11
             state_index = episode[i] % len(self.state_space)
 
             if state_index >= len(self.state_space):
@@ -63,8 +75,11 @@ class Q_learning(Model):
 
             next_state = self.state_space[next_state_index]
 
-            action_index = self.choose_action(state_index)  # Choose an action based on the current state index
-            action = self.action_space[action_index]  # Get the corresponding action
+            # Choose an action based on the current state index
+            action_index = self.choose_action(state_index)
+            # Get the corresponding action
+            action = self.action_space[action_index]
+            # env.get_reward(action, i + 1)
             reward = env.get_reward(action, next_state)  # Get the reward
             total_reward += reward  # Accumulate the reward
 
@@ -86,7 +101,9 @@ class Q_learning(Model):
             # Optional: Print progress every 10 episodes
             if (episode_idx + 1) % 10 == 0:
                 avg_reward = np.mean(self.reward_trace[-10:])
-                print(f"Episode {episode_idx + 1}/{n_episodes} completed. Average reward (last 10): {avg_reward:.2f}")
+                print(
+                    f"Episode {episode_idx + 1}/{n_episodes} completed. Average reward (last 10): {avg_reward:.2f}"
+                )
 
         print("Learning complete.")
 
@@ -96,14 +113,12 @@ class Q_learning(Model):
         result = env.data[["Date"]]
 
         result["Return"] = (
-            action[0] * env.data["AGG_Returns"]
-            + action[1] * env.data["MSCI_Returns"]
+            action[0] * env.data["AGG_Returns"] + action[1] * env.data["MSCI_Returns"]
         )
         return result
 
 
 if __name__ == "__main__":
-
 
     data = preprocess_data()
     env = Environment(data=data)
@@ -112,11 +127,15 @@ if __name__ == "__main__":
     data[["AGG_Returns", "MSCI_Returns"]] = data[["AGG_Returns", "MSCI_Returns"]]
 
     # train and test environment
-    train_env = Environment(data[data["Date"] < datetime.strptime("2020-01-01", "%Y-%m-%d")])
-    test_env = Environment(data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")])
+    train_env = Environment(
+        data[data["Date"] < datetime.strptime("2020-01-01", "%Y-%m-%d")]
+    )
+    test_env = Environment(
+        data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")]
+    )
 
     # define space
-    state_space = ['11', '10', '01', '00']
+    state_space = ["11", "10", "01", "00"]
     action_space = [(0, 100), (25, 75), (50, 50), (75, 25), (100, 0)]
 
     # parameters
@@ -134,7 +153,7 @@ if __name__ == "__main__":
         learning_rate=learning_rate,
         discount_factor=discount_factor,
         exploration_rate=exploration_rate,
-        min_exploration_rate=min_exploration_rate
+        min_exploration_rate=min_exploration_rate,
     )
 
     # train model
