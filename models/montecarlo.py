@@ -12,12 +12,13 @@ A monte carlo model with epsilon greedy policy.
 - Episode: A complete run of the model from the start to the end of the training data.
 - Epsilon: The probability of choosing a random action instead of the best action for exploring instead of exploiting.
 - State-Action Dictionary: A dictionary that stores the average reward and count of each state-action pair.
+- Reward: The reward is the next day reward of the action taken on the current day.
 
 '''
 
 class MonteCarlo(Model):
-    def __init__(self, cleaned_data, actions, epsilon=0.1):
-        super().__init__(state_space=None, action_space=actions)
+    def __init__(self, cleaned_data, actions, epsilon=0.1, state_space = ['11', '10', '01', '00']):
+        super().__init__(state_space = state_space, action_space = actions)
         self.cleaned_data = cleaned_data
         self.actions = actions
         self.epsilon = epsilon
@@ -25,7 +26,7 @@ class MonteCarlo(Model):
 
     def initialize_policy(self):
         return {(state, action): (0, 0) 
-                for state in ['11', '10', '01', '00'] 
+                for state in self.state_space
                 for action in range(len(self.actions))}
 
     def choose_action(self, state):
@@ -41,18 +42,19 @@ class MonteCarlo(Model):
         n_steps = len(train_env.data)
 
         for episode in range(episodes):
-            for t in range(n_steps):
-                state = train_env.get_state(index=t)
+            for t in range(n_steps - 1):
+                state = train_env.get_state(index = t)
 
                 action_index = self.choose_action(state)
                 action = self.actions[action_index]
 
-                reward = train_env.get_reward(action, index=t)
+                reward = train_env.get_reward(action, index =  t + 1)
                 self.update_policy(state, action_index, reward)
 
         optimum_action_dict = {
             state: np.argmax(self.calculate_average_reward(state))
-            for state in ['11', '10', '01', '00']}
+            for state in self.state_space
+        }
 
         return optimum_action_dict
 
@@ -60,13 +62,14 @@ class MonteCarlo(Model):
     def test(self, optimum_action_dict, test_env):
         rewards = []
 
-        for t in range(len(test_env.data)):
-            state = test_env.get_state(index=t)
+        for t in range(len(test_env.data) - 1):            
+            state = test_env.get_state(index = t)
 
             action_index = optimum_action_dict[state]
             action = self.actions[action_index]
 
-            reward = test_env.get_reward(action, index=t)
+            # get reward from next day
+            reward = test_env.get_reward(action, index = t + 1)
             rewards.append(reward)
 
         return rewards
