@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import random
 import matplotlib.pyplot as plt
-from Model import Model
+from models.Model import Model
 from environment import Environment, preprocess_data
 
 
@@ -12,7 +12,6 @@ class Q_learning(Model):
         self,
         state_space,
         action_space,
-        num_episodes,
         learning_rate,
         discount_factor,
         exploration_rate,
@@ -20,11 +19,9 @@ class Q_learning(Model):
         super().__init__(state_space, action_space, discount_factor)
         self.state_indices = {state: i for i, state in enumerate(state_space)}
         self.action_indices = {action: i for i, action in enumerate(action_space)}
-        self.num_episodes = num_episodes
         self.learning_rate = learning_rate
         self.discount_factor = discount_factor
         self.exploration_rate = exploration_rate
-        self.min_exploration_rate = min_exploration_rate
         self.q_table = np.zeros((len(state_space), len(action_space)))
         self.reward_trace = []
         self.episode_reward = []
@@ -156,24 +153,22 @@ if __name__ == "__main__":
     action_space = [(0, 1), (0.25, 0.75), (0.50, 0.50), (0.75, 0.25), (1, 0)]
 
     # parameters
-    num_episodes = 500
+    num_episodes = 1000
     learning_rate = 0.01
     discount_factor = 0.99
-    exploration_rate = 0.5
-    min_exploration_rate = 0.01
+    exploration_rate = 0.1
 
     # create model
     q_learning_model = Q_learning(
         state_space=state_space,
         action_space=action_space,
-        num_episodes=num_episodes,
         learning_rate=learning_rate,
         discount_factor=discount_factor,
         exploration_rate=exploration_rate,
     )
 
     # train model
-    q_learning_model.learn(train_env, n_episodes=num_episodes, verbose_freq=50)
+    q_learning_model.learn(train_env, n_episodes=num_episodes, verbose_freq=100)
 
     # output q-table
     print("Q-table after training:")
