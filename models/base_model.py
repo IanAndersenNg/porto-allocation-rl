@@ -26,6 +26,7 @@ class Model:
 
     def generate_episode(self, env, min_length=4):
         # Randomly generate the initial state (for each episode) beginning with the first period to period k−4.
+        random.seed(9)
         start = random.randint(0, len(env.data) - min_length)
         end = random.randint(start + min_length, len(env.data))
         return [i for i in range(start, end)]
