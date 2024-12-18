@@ -71,6 +71,9 @@ class Environment:
         returns = self.get_continuous_state(date=date, index=index)
         portfolio_return = np.dot(action, returns)
 
+        if not self.use_sharpe_ratio_reward:
+            return portfolio_return
+
         # time scale of around 1 decade, following eta value of paper
         eta = 0.1
         A_t = eta * portfolio_return + (1 - eta) * self.prev_A
@@ -85,4 +88,4 @@ class Environment:
         self.prev_A = A_t
         self.prev_B = B_t
         # I just found out for the continuous agent, the reward is simply the weighted sum
-        return diff_sharpe_ratio if self.use_sharpe_ratio_reward else portfolio_return
+        return diff_sharpe_ratio
