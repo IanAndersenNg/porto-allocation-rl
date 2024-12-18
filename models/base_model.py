@@ -18,7 +18,10 @@ class Model:
     def update_policy(self, state, action, reward, next_state):
         raise NotImplementedError("This method should be overridden by subclasses")
 
-    def train(self, episodes):
+    def train(self, episodes, env):
+        raise NotImplementedError("This method should be overridden by subclasses")
+
+    def test(self, env):
         raise NotImplementedError("This method should be overridden by subclasses")
 
     def generate_episode(self, env, min_length=4):
