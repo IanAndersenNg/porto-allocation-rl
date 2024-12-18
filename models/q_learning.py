@@ -1,9 +1,9 @@
 from datetime import datetime
-import pandas as pd  # not used
 import numpy as np
+import pandas as pd
 import random
 import matplotlib.pyplot as plt
-from models.Model import Model
+from Model import Model
 from environment import Environment, preprocess_data
 
 
@@ -16,13 +16,10 @@ class Q_learning(Model):
         learning_rate,
         discount_factor,
         exploration_rate,
-        min_exploration_rate,  # not used
     ):
         super().__init__(state_space, action_space, discount_factor)
         self.state_indices = {state: i for i, state in enumerate(state_space)}
         self.action_indices = {action: i for i, action in enumerate(action_space)}
-        # self.state_space = state_space
-        # self.action_space = action_space
         self.num_episodes = num_episodes
         self.learning_rate = learning_rate
         self.discount_factor = discount_factor
@@ -44,10 +41,7 @@ class Q_learning(Model):
 
     def choose_action(self, state):
         state_index = self.state_indices[state]
-        # choose action with max Q
-        # Get the corresponding action
         return self.action_space[np.argmax(self.q_table[state_index])]
-        # state_index = state_index % len(self.state_space)
 
     def update_q_value(self, state, action, reward, next_state):
         # Follow the definition of Model
@@ -57,32 +51,14 @@ class Q_learning(Model):
 
         max_future_q = np.max(self.q_table[next_state_index])
         current_q = self.q_table[state_index][action_index]
-        # print(state_index, action_index, self.q_table[state_index][action_index])
         self.q_table[state_index][action_index] = current_q + self.learning_rate * (
             reward + self.discount_factor * max_future_q - current_q
         )
-        # print(state_index, action_index, self.q_table[state_index][action_index])
 
     def train(self, episode, env):
         total_reward = 0
         for i in range(len(episode) - 1):
-            # episode裡面是一堆data index, 給定一個index, 使用env.get_discrete_state 得到 00, 01, 10, 11
-            #             state_index = episode[i] % len(self.state_space)
-            #
-            #             if state_index >= len(self.state_space):
-            #                 print(f"Error: state_index {state_index} is out of bounds.")
-            #                 continue
-            #
-            #             next_state_index = episode[i + 1] % len(self.state_space)
-            #
-            #             if next_state_index >= len(self.state_space):
-            #                 print(f"Error: next_state_index {next_state_index} is out of bounds.")
-            #                 continue
-            #
-            #             state = env.get_continuous_state(index=episode[i])
-            #             next_state = env.get_continuous_state(index=episode[i + 1])
-            # You should use get_discrete_state to get 00, 01, 10, 11
-            # and convert it to the index in the q table
+            # get discrete state and convert it to the index in the q table
             state = env.get_discrete_state(index=episode[i])
             next_state = env.get_discrete_state(index=episode[i + 1])
             # epsilon greedy
@@ -91,7 +67,6 @@ class Q_learning(Model):
             else:
                 # Choose an action based on the current state index
                 action = self.choose_action(state)
-            # action = self.action_space[action_index]
             # env.get_reward(action, i + 1)
             reward = env.get_reward(action, index=episode[i + 1])  # Get the reward
             total_reward += reward  # Accumulate the reward
@@ -101,8 +76,6 @@ class Q_learning(Model):
 
         self.reward_trace.append(total_reward / len(episode))
         self.episode_reward.append(total_reward)
-
-    #         self.q_table /= len(episode)
 
     def learn(self, env, n_episodes=100, verbose_freq=None):
         for episode_idx in range(n_episodes):
@@ -137,16 +110,11 @@ class Q_learning(Model):
             action = self.choose_action(state)
             actions.append(action)
 
-        # action_index = self.choose_action(0)
-        # action = self.action_space[action_index]
         result = env.data[["Date"]].reset_index(drop=True)
         result = pd.concat(
             [result, pd.DataFrame(actions, columns=env.asset_names)], axis=1
         )
 
-        #         result["Return"] = (
-        #             action[0] * env.data["AGG_Returns"] + action[1] * env.data["MSCI_Returns"]
-        #         )
         return result
 
     def plot_rewards(self):
@@ -202,7 +170,6 @@ if __name__ == "__main__":
         learning_rate=learning_rate,
         discount_factor=discount_factor,
         exploration_rate=exploration_rate,
-        min_exploration_rate=min_exploration_rate,
     )
 
     # train model
