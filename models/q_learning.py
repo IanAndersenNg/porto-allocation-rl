@@ -42,12 +42,19 @@ class Q_learning(Model):
         end = random.randint(start + min_length, len(env.data))
         return [i for i in range(start, end)]
 
-    def choose_action(self, state_index):
+    def choose_action(self, state):
+        state_index = self.state_indices[state]
         # choose action with max Q
-        return np.argmax(self.q_table[state_index])
+        # Get the corresponding action
+        return self.action_space[np.argmax(self.q_table[state_index])]
         # state_index = state_index % len(self.state_space)
 
-    def update_q_value(self, state_index, action_index, reward, next_state_index):
+    def update_q_value(self, state, action, reward, next_state):
+        # Follow the definition of Model
+        state_index = self.state_indices[state]
+        next_state_index = self.state_indices[next_state]
+        action_index = self.action_indices[action]
+
         max_future_q = np.max(self.q_table[next_state_index])
         current_q = self.q_table[state_index][action_index]
         # print(state_index, action_index, self.q_table[state_index][action_index])
@@ -78,22 +85,19 @@ class Q_learning(Model):
             # and convert it to the index in the q table
             state = env.get_discrete_state(index=episode[i])
             next_state = env.get_discrete_state(index=episode[i + 1])
-            state_index = self.state_indices[state]
-            next_state_index = self.state_indices[next_state]
             # epsilon greedy
             if np.random.rand() < self.exploration_rate:
-                action_index = np.random.choice(len(self.action_space))
+                action = self.action_space[np.random.choice(len(self.action_space))]
             else:
                 # Choose an action based on the current state index
-                action_index = self.choose_action(state_index)
-            # Get the corresponding action
-            action = self.action_space[action_index]
+                action = self.choose_action(state)
+            # action = self.action_space[action_index]
             # env.get_reward(action, i + 1)
             reward = env.get_reward(action, index=episode[i + 1])  # Get the reward
             total_reward += reward  # Accumulate the reward
 
             # Update Q-values
-            self.update_q_value(state_index, action_index, reward, next_state_index)
+            self.update_q_value(state, action, reward, next_state)
 
         self.reward_trace.append(total_reward / len(episode))
         self.episode_reward.append(total_reward)
@@ -126,13 +130,23 @@ class Q_learning(Model):
         self.plot_rewards()
 
     def test(self, env):
-        action_index = self.choose_action(0)
-        action = self.action_space[action_index]
-        result = env.data[["Date"]]
+        actions = []
+        # Choose action every day in testing dataset
+        for i in range(len(env.data)):
+            state = env.get_discrete_state(index=i)
+            action = self.choose_action(state)
+            actions.append(action)
 
-        result["Return"] = (
-            action[0] * env.data["AGG_Returns"] + action[1] * env.data["MSCI_Returns"]
+        # action_index = self.choose_action(0)
+        # action = self.action_space[action_index]
+        result = env.data[["Date"]].reset_index(drop=True)
+        result = pd.concat(
+            [result, pd.DataFrame(actions, columns=env.asset_names)], axis=1
         )
+
+        #         result["Return"] = (
+        #             action[0] * env.data["AGG_Returns"] + action[1] * env.data["MSCI_Returns"]
+        #         )
         return result
 
     def plot_rewards(self):
@@ -197,3 +211,5 @@ if __name__ == "__main__":
     # output q-table
     print("Q-table after training:")
     print(q_learning_model.df_q_table)
+    result = q_learning_model.test(test_env)
+    print(result)
