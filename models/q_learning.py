@@ -1,9 +1,9 @@
 from datetime import datetime
-import pandas as pd
+import pandas as pd  # not used
 import numpy as np
 import random
 import matplotlib.pyplot as plt
-from Model import Model
+from models.Model import Model
 from environment import Environment, preprocess_data
 
 
@@ -16,11 +16,13 @@ class Q_learning(Model):
         learning_rate,
         discount_factor,
         exploration_rate,
-        min_exploration_rate,
+        min_exploration_rate,  # not used
     ):
         super().__init__(state_space, action_space, discount_factor)
-        self.state_space = state_space
-        self.action_space = action_space
+        self.state_indices = {state: i for i, state in enumerate(state_space)}
+        self.action_indices = {action: i for i, action in enumerate(action_space)}
+        # self.state_space = state_space
+        # self.action_space = action_space
         self.num_episodes = num_episodes
         self.learning_rate = learning_rate
         self.discount_factor = discount_factor
@@ -41,7 +43,7 @@ class Q_learning(Model):
         return [i for i in range(start, end)]
 
     def choose_action(self, state_index):
-        state_index = state_index % len(self.state_space)
+        # state_index = state_index % len(self.state_space)
         if np.random.rand() < self.exploration_rate:
             return np.random.choice(len(self.action_space))
         else:
@@ -59,27 +61,33 @@ class Q_learning(Model):
         total_reward = 0
         for i in range(len(episode) - 1):
             # episode裡面是一堆data index, 給定一個index, 使用env.get_discrete_state 得到 00, 01, 10, 11
-            state_index = episode[i] % len(self.state_space)
-
-            if state_index >= len(self.state_space):
-                print(f"Error: state_index {state_index} is out of bounds.")
-                continue
-
-            next_state_index = episode[i + 1] % len(self.state_space)
-
-            if next_state_index >= len(self.state_space):
-                print(f"Error: next_state_index {next_state_index} is out of bounds.")
-                continue
-
-            state = env.get_continuous_state(index=episode[i])
-            next_state = env.get_continuous_state(index=episode[i + 1])
+            #             state_index = episode[i] % len(self.state_space)
+            #
+            #             if state_index >= len(self.state_space):
+            #                 print(f"Error: state_index {state_index} is out of bounds.")
+            #                 continue
+            #
+            #             next_state_index = episode[i + 1] % len(self.state_space)
+            #
+            #             if next_state_index >= len(self.state_space):
+            #                 print(f"Error: next_state_index {next_state_index} is out of bounds.")
+            #                 continue
+            #
+            #             state = env.get_continuous_state(index=episode[i])
+            #             next_state = env.get_continuous_state(index=episode[i + 1])
+            # You should use get_discrete_state to get 00, 01, 10, 11
+            # and convert it to the index in the q table
+            state = env.get_discrete_state(index=episode[i])
+            next_state = env.get_discrete_state(index=episode[i + 1])
+            state_index = self.state_indices[state]
+            next_state_index = self.state_indices[next_state]
 
             # Choose an action based on the current state index
             action_index = self.choose_action(state_index)
             # Get the corresponding action
             action = self.action_space[action_index]
             # env.get_reward(action, i + 1)
-            reward = env.get_reward(action, index = episode[i+1])  # Get the reward
+            reward = env.get_reward(action, index=episode[i + 1])  # Get the reward
             total_reward += reward  # Accumulate the reward
 
             # Update Q-values
@@ -88,24 +96,29 @@ class Q_learning(Model):
         self.reward_trace.append(total_reward / len(episode))
         self.episode_reward.append(total_reward)
 
-    def learn(self, env, n_episodes=100):
+    def learn(self, env, n_episodes=100, verbose_freq=None):
         for episode_idx in range(n_episodes):
             episode = self.generate_episode(env)
 
             # print start of episode
-            print(f"Starting episode {episode_idx+1}/{n_episodes}")
+            if verbose_freq and not (episode_idx + 1) % verbose_freq:
+                print(f"Starting episode {episode_idx+1}/{n_episodes}")
 
             # Train on this episode
             self.train(episode, env)
 
             # Optional: Print progress every 10 episodes
-            if (episode_idx + 1) % 10 == 0:
+            if verbose_freq and (episode_idx + 1) % verbose_freq == 0:
                 avg_reward = np.mean(self.reward_trace[-10:])
                 print(
                     f"Episode {episode_idx + 1}/{n_episodes} completed. Average reward (last 10): {avg_reward:.2f}"
                 )
+                print(self.q_table)
 
         print("Learning complete.")
+        self.df_q_table = pd.DataFrame(
+            self.q_table, index=self.state_space, columns=self.action_space
+        )
         self.plot_rewards()
 
     def test(self, env):
@@ -121,10 +134,15 @@ class Q_learning(Model):
     def plot_rewards(self):
         # Plotting the total reward per episode
         plt.figure(figsize=(10, 6))
-        plt.plot(range(len(self.episode_reward)), self.episode_reward, label="Episode Rewards", color='b')
-        plt.xlabel('Episode')
-        plt.ylabel('Total Reward')
-        plt.title('Reward Curve Over Episodes')
+        plt.plot(
+            range(len(self.episode_reward)),
+            self.episode_reward,
+            label="Episode Rewards",
+            color="b",
+        )
+        plt.xlabel("Episode")
+        plt.ylabel("Total Reward")
+        plt.title("Reward Curve Over Episodes")
         plt.grid(True)
         plt.legend()
         plt.show()
@@ -136,7 +154,7 @@ if __name__ == "__main__":
     env = Environment(data=data)
     print("Columns:", data.columns)
 
-    data[["AGG_Returns", "MSCI_Returns"]] = data[["AGG_Returns", "MSCI_Returns"]]
+    data[["AGG_Returns", "MSCI_Returns"]] = data[["AGG_Returns", "MSCI_Returns"]]  # ?
 
     # train and test environment
     train_env = Environment(
@@ -148,7 +166,8 @@ if __name__ == "__main__":
 
     # define space
     state_space = ["11", "10", "01", "00"]
-    action_space = [(0, 100), (25, 75), (50, 50), (75, 25), (100, 0)]
+    # action_space = [(0, 100), (25, 75), (50, 50), (75, 25), (100, 0)]
+    action_space = [(0, 1), (0.25, 0.75), (0.50, 0.50), (0.75, 0.25), (1, 0)]
 
     # parameters
     num_episodes = 500
@@ -169,8 +188,8 @@ if __name__ == "__main__":
     )
 
     # train model
-    q_learning_model.learn(train_env, n_episodes=num_episodes)
+    q_learning_model.learn(train_env, n_episodes=num_episodes, verbose_freq=100)
 
     # output q-table
     print("Q-table after training:")
-    print(q_learning_model.q_table)
+    print(q_learning_model.df_q_table)
