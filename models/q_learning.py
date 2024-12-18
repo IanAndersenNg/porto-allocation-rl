@@ -43,19 +43,18 @@ class Q_learning(Model):
         return [i for i in range(start, end)]
 
     def choose_action(self, state_index):
+        # choose action with max Q
+        return np.argmax(self.q_table[state_index])
         # state_index = state_index % len(self.state_space)
-        if np.random.rand() < self.exploration_rate:
-            return np.random.choice(len(self.action_space))
-        else:
-            # choose action with max Q
-            return np.argmax(self.q_table[state_index])
 
     def update_q_value(self, state_index, action_index, reward, next_state_index):
         max_future_q = np.max(self.q_table[next_state_index])
         current_q = self.q_table[state_index][action_index]
+        # print(state_index, action_index, self.q_table[state_index][action_index])
         self.q_table[state_index][action_index] = current_q + self.learning_rate * (
             reward + self.discount_factor * max_future_q - current_q
         )
+        # print(state_index, action_index, self.q_table[state_index][action_index])
 
     def train(self, episode, env):
         total_reward = 0
@@ -81,9 +80,12 @@ class Q_learning(Model):
             next_state = env.get_discrete_state(index=episode[i + 1])
             state_index = self.state_indices[state]
             next_state_index = self.state_indices[next_state]
-
-            # Choose an action based on the current state index
-            action_index = self.choose_action(state_index)
+            # epsilon greedy
+            if np.random.rand() < self.exploration_rate:
+                action_index = np.random.choice(len(self.action_space))
+            else:
+                # Choose an action based on the current state index
+                action_index = self.choose_action(state_index)
             # Get the corresponding action
             action = self.action_space[action_index]
             # env.get_reward(action, i + 1)
@@ -95,6 +97,8 @@ class Q_learning(Model):
 
         self.reward_trace.append(total_reward / len(episode))
         self.episode_reward.append(total_reward)
+
+    #         self.q_table /= len(episode)
 
     def learn(self, env, n_episodes=100, verbose_freq=None):
         for episode_idx in range(n_episodes):
@@ -154,7 +158,7 @@ if __name__ == "__main__":
     env = Environment(data=data)
     print("Columns:", data.columns)
 
-    data[["AGG_Returns", "MSCI_Returns"]] = data[["AGG_Returns", "MSCI_Returns"]]  # ?
+    data[["AGG_Returns", "MSCI_Returns"]] = data[["AGG_Returns", "MSCI_Returns"]]
 
     # train and test environment
     train_env = Environment(
@@ -188,7 +192,7 @@ if __name__ == "__main__":
     )
 
     # train model
-    q_learning_model.learn(train_env, n_episodes=num_episodes, verbose_freq=100)
+    q_learning_model.learn(train_env, n_episodes=num_episodes, verbose_freq=50)
 
     # output q-table
     print("Q-table after training:")
