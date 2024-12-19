@@ -2,6 +2,7 @@ import numpy as np
 from datetime import datetime
 from models.q_learning import Q_learning
 from environment import Environment, preprocess_data
+import argparse
 
 
 class SARSA(Q_learning):
@@ -26,16 +27,21 @@ class SARSA(Q_learning):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dsr', action='store_true', help='Sets the reward function to be differential sharpe ratio')
+    dsr_reward = parser.parse_args().dsr
 
     data = preprocess_data()
     data[["AGG_Returns", "MSCI_Returns"]] = data[["AGG_Returns", "MSCI_Returns"]]
 
     # train and test environment
     train_env = Environment(
-        data[data["Date"] < datetime.strptime("2020-01-01", "%Y-%m-%d")]
+        data[data["Date"] < datetime.strptime("2020-01-01", "%Y-%m-%d")],
+        use_sharpe_ratio_reward = dsr_reward
     )
     test_env = Environment(
-        data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")]
+        data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")],
+        use_sharpe_ratio_reward = dsr_reward
     )
 
     # define space
