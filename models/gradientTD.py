@@ -3,7 +3,8 @@ import random
 import numpy as np
 import torch
 from environment import Environment, preprocess_data
-from models.Model import Model
+from models.base_model import Model
+
 # import sys
 
 # sys.path.append("../")
@@ -25,10 +26,9 @@ class GradientTD(Model):
     def __init__(
         self, state_space, action_space, gamma=0.9, lambda_=0.9, alpha=0.1, epsilon=0.01
     ):
-        super().__init__(state_space, action_space, gamma)
+        super().__init__(state_space, action_space, gamma, epsilon)
         self.lambda_ = lambda_
         self.alpha = alpha
-        self.epsilon = epsilon
         # self.e = np.array([0, 0])
         self.reward_trace = []
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.alpha)
@@ -57,12 +57,6 @@ class GradientTD(Model):
         self.optimizer.step()
         self.model.linear.weight.data.clamp_(self.action_space[0], self.action_space[1])
         return
-
-    def generate_episode(self, env, min_length=4):
-        # Randomly generate the initial state (for each episode) beginning with the first period to period k−4.
-        start = random.randint(0, len(env.data) - min_length)
-        end = random.randint(start + min_length, len(env.data))
-        return [i for i in range(start, end)]
 
     def train(self, episode, env):
         """

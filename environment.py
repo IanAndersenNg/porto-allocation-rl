@@ -22,9 +22,12 @@ def preprocess_data():
 
 
 class Environment:
-    def __init__(self, data):
+    def __init__(self, data, use_sharpe_ratio_reward = False):
         self.data = data
         self.asset_names = [col for col in data.columns if col != "Date"]
+        self.use_sharpe_ratio_reward = use_sharpe_ratio_reward
+        self.prev_A = 0
+        self.prev_B = 0
 
     def _get_row(self, date=None, index=None):
         if index is not None and date is not None:
@@ -56,7 +59,7 @@ class Environment:
 
     def get_reward(self, action, date=None, index=None):
         """
-        Returns log return + Sharpe ratio as the reward
+        Returns portfolio return or Sharpe ratio as the reward
 
         Inputs:
             action (list of numbers): Portfolio weights for each asset.
@@ -67,12 +70,24 @@ class Environment:
         #         returns = row.iloc[1:]
         returns = self.get_continuous_state(date=date, index=index)
         portfolio_return = np.dot(action, returns)
-        # I just found out for the continuous agent, the reward is simply the weighted sum
-        return portfolio_return
-        log_return = np.log(1 + portfolio_return)
+        if not self.use_sharpe_ratio_reward:
+            return portfolio_return
 
-        # assume risk-free rate of 0.02 for Sharpe ratio calculation
-        # sharpe_ratio = (log_return - 0.02) / (np.std(returns) if np.std(returns) > 0 else 1)
-        # reward = log_return + sharpe_ratio  # TODO - POC only, calculations to be finalized later
-        reward = log_return
-        return reward
+        if not self.use_sharpe_ratio_reward:
+            return portfolio_return
+
+        # time scale of around 1 decade, following eta value of paper
+        eta = 0.1
+        A_t = eta * portfolio_return + (1 - eta) * self.prev_A
+        B_t = eta * portfolio_return ** 2 + (1 - eta) * self.prev_B
+
+        # deltas A and B are referenced from the paper (equation 3.3)
+        delta_A = portfolio_return - self.prev_A
+        delta_B = portfolio_return ** 2 - self.prev_B
+
+        dsr_denominator = (self.prev_B - self.prev_A ** 2) ** (3 / 2)
+        diff_sharpe_ratio = (self.prev_B * delta_A - 0.5 * self.prev_A * delta_B) / dsr_denominator if dsr_denominator != 0 else 0
+        self.prev_A = A_t
+        self.prev_B = B_t
+        # I just found out for the continuous agent, the reward is simply the weighted sum
+        return diff_sharpe_ratio
