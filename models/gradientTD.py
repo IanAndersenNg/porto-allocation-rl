@@ -2,8 +2,13 @@ from datetime import datetime
 import random
 import numpy as np
 import torch
+# import sys
+# import os
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# import environment
 from environment import Environment, preprocess_data
 from models.base_model import Model
+import argparse
 
 # import sys
 
@@ -107,16 +112,22 @@ class GradientTD(Model):
 
 
 if __name__ == "__main__":  # python3 -m models.gradientTD
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dsr', action='store_true', help='Sets the reward function to be differential sharpe ratio')
+    dsr_reward = parser.parse_args().dsr
+
     data = preprocess_data()
     data[["AGG_Returns", "MSCI_Returns"]] = (
         data[["AGG_Returns", "MSCI_Returns"]] / 100
     )  # rescale for pytoch linear
     train_env = Environment(
-        data[data["Date"] < datetime.strptime("2020-01-01", "%Y-%m-%d")]
+        data[data["Date"] < datetime.strptime("2020-01-01", "%Y-%m-%d")],
+        use_sharpe_ratio_reward = dsr_reward
     )
 
     test_env = Environment(
-        data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")]
+        data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")],
+        use_sharpe_ratio_reward = dsr_reward
     )
     GTD = GradientTD(
         state_space=np.array([-np.inf, np.inf]),

@@ -5,6 +5,7 @@ import random
 import matplotlib.pyplot as plt
 from models.Model import Model
 from environment import Environment, preprocess_data
+import argparse
 
 
 class Q_learning(Model):
@@ -132,6 +133,9 @@ class Q_learning(Model):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dsr', action='store_true', help='Sets the reward function to be differential sharpe ratio')
+    dsr_reward = parser.parse_args().dsr
 
     data = preprocess_data()
     env = Environment(data=data)
@@ -141,10 +145,12 @@ if __name__ == "__main__":
 
     # train and test environment
     train_env = Environment(
-        data[data["Date"] < datetime.strptime("2020-01-01", "%Y-%m-%d")]
+        data[data["Date"] < datetime.strptime("2020-01-01", "%Y-%m-%d")],
+        use_sharpe_ratio_reward = dsr_reward
     )
     test_env = Environment(
-        data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")]
+        data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")],
+        use_sharpe_ratio_reward = dsr_reward
     )
 
     # define space
