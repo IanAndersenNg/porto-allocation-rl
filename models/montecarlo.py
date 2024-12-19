@@ -1,4 +1,4 @@
-from .model import Model
+from .base_model import Model
 import numpy as np
 import random
 
@@ -34,10 +34,14 @@ class MonteCarlo(Model):
         self.state_action_dict[(state, action)] = (reward_sum + reward, count + 1)
 
     def train(self, episodes, train_env):
-        n_steps = len(train_env.data)
 
-        for episode in range(episodes):
-            for t in range(n_steps - 1):
+        for i in range(episodes):
+            episode_indexes  = self.generate_episode(train_env)
+
+            print("Starting episode : ", i)
+            print("---------------------------------------")
+
+            for t in episode_indexes:
                 state = train_env.get_discrete_state(index = t)
 
                 action_index = self.choose_action(state)
@@ -45,6 +49,11 @@ class MonteCarlo(Model):
 
                 reward = train_env.get_reward(action, index =  t + 1)
                 self.update_policy(state, action_index, reward)
+
+                print("State action dict after policy update: ", self.state_action_dict)
+
+            print("Ending episode : ", i)
+            print("State action dict after episode: ", self.state_action_dict)
 
         optimum_action_dict = {
             state: np.argmax(self.calculate_average_reward(state))

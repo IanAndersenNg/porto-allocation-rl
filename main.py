@@ -1,6 +1,5 @@
 from environment import Environment, preprocess_data
 from datetime import datetime
-from models.model import Model
 from models.montecarlo import MonteCarlo
 
 data = preprocess_data()
@@ -12,7 +11,7 @@ train_env = Environment(
 test_env = Environment(
     data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")])
 
-optimum_action_dict = monte_carlo.train(100, train_env)
+optimum_action_dict = monte_carlo.train(10, train_env)
 monte_carlo_actions = monte_carlo.test(optimum_action_dict, test_env)
 
 print("Optimum state action dict : ", optimum_action_dict)

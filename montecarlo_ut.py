@@ -13,7 +13,7 @@ class TestMonteCarlo(unittest.TestCase):
             "MSCI_Returns": [0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8, 0.9, -1.0],
             "AGG_Returns": [-0.1, 0.2, -0.3, 0.4, -0.5, 0.6, -0.7, 0.8, -0.9, 1.0]
         })
-        
+            
         self.actions = [(0, 100), (25, 75), (50, 50), (75, 25), (100, 0)]
         self.monte_carlo = MonteCarlo(mock_data, self.actions, epsilon=0.1)
         self.train_env = Environment(mock_data)

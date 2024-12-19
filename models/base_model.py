@@ -1,6 +1,5 @@
 import random
 
-
 class Model:
     def __init__(self, state_space, action_space, gamma=0.99, epsilon=0.01):
         self.state_space = state_space
