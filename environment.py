@@ -70,6 +70,8 @@ class Environment:
         #         returns = row.iloc[1:]
         returns = self.get_continuous_state(date=date, index=index)
         portfolio_return = np.dot(action, returns)
+        if not self.use_sharpe_ratio_reward:
+            return portfolio_return
 
         if not self.use_sharpe_ratio_reward:
             return portfolio_return
