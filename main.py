@@ -14,7 +14,7 @@ test_env = Environment(
     data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")])
 
 optimum_action_dict = monte_carlo.train(1000, train_env)
-monte_carlo_actions = monte_carlo.test(test_env)
+monte_carlo_actions = monte_carlo.choose_test_actions(test_env)
 
 print("Optimum state action dict : ", optimum_action_dict)
 print("Monte Carlo actions: ", monte_carlo_actions[0:10])
