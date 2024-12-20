@@ -16,11 +16,11 @@ A monte carlo model with epsilon greedy policy.
 '''
 
 class MonteCarlo(Model):
-    def __init__(self, cleaned_data, actions, epsilon=0.0, state_space = ['11', '10', '01', '00']):
+    def __init__(self, actions, epsilon=0.0, state_space = ['11', '10', '01', '00']):
         super().__init__(state_space = state_space, action_space = actions)
-        self.cleaned_data = cleaned_data
         self.epsilon = epsilon
         self.state_action_dict = self.initialize_policy()
+        self.optimum_action_dict = {}
 
     def initialize_policy(self):
         return {(state, action): (0,0) 
@@ -67,12 +67,12 @@ class MonteCarlo(Model):
         # print("actions taken : ", actions_taken)
         print(self.pretty_print_state_action_dict(self.state_action_dict))
 
-        optimum_action_dict = {
+        self.optimum_action_dict = {
             state: np.argmax(self.calculate_average_reward(state))
             for state in self.state_space
         }
 
-        return optimum_action_dict
+        return self.optimum_action_dict
     
 
     def train(self, episodes, train_env):
@@ -91,21 +91,21 @@ class MonteCarlo(Model):
         print("State action dict after all episodes: ")
         print(self.pretty_print_state_action_dict(self.state_action_dict))
 
-        optimum_action_dict = {
+        self.optimum_action_dict = {
             state: np.argmax(self.calculate_average_reward(state))
             for state in self.state_space
         }
 
-        return optimum_action_dict
+        return self.optimum_action_dict
 
     
     # returns the optimum action of each state
-    def test(self, optimum_action_dict, test_env):
+    def test(self, test_env):
         res_actions = []
 
         for t in range(len(test_env.data) - 1):            
             state = test_env.get_discrete_state(index = t)
-            action_index = optimum_action_dict[state]
+            action_index = self.optimum_action_dict[state]
             action = self.action_space[action_index]
             res_actions.append(action)
 
