@@ -102,7 +102,7 @@ class MonteCarlo(Model):
     def choose_test_actions(self, test_env):
         res_actions = []
 
-        for t in range(len(test_env.data) - 1):            
+        for t in range(len(test_env.data) - 1):
             state = test_env.get_discrete_state(index = t)
             action_index = self.optimum_action_dict[state]
             action = self.action_space[action_index]
@@ -118,7 +118,8 @@ class MonteCarlo(Model):
         result_df = pd.concat(
             [result_df, pd.DataFrame(test_actions, columns=test_env.asset_names)], axis=1
         )
-        return result_df
+        result_df[test_env.asset_names] = result_df[test_env.asset_names].shift()
+        return result_df.dropna().reset_index(drop=True)
     
     # cum sum divided by count
     def calculate_average_reward(self, state):
