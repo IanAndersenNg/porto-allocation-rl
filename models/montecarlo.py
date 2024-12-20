@@ -16,7 +16,7 @@ A monte carlo model with epsilon greedy policy.
 '''
 
 class MonteCarlo(Model):
-    name = "Monte Carlo"
+    name = "monte_carlo"
 
     def __init__(self, actions, epsilon=0.0, state_space = ['11', '10', '01', '00']):
         super().__init__(state_space = state_space, action_space = actions)

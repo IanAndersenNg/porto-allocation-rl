@@ -64,8 +64,6 @@ class Environment:
             index (int): Row index
             date (string / timestamp): Row date
         """
-        #         row = self._get_row(date = date, index = index)
-        #         returns = row.iloc[1:]
         returns = self.get_continuous_state(date=date, index=index)
         portfolio_return = np.dot(action, returns)
         if not self.use_sharpe_ratio_reward:
