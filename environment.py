@@ -22,7 +22,7 @@ def preprocess_data():
 
 
 class Environment:
-    def __init__(self, data, use_sharpe_ratio_reward = False):
+    def __init__(self, data, use_sharpe_ratio_reward=False):
         self.data = data
         self.asset_names = [col.replace("_Returns", "") for col in data.columns if col != "Date"]
         self.use_sharpe_ratio_reward = use_sharpe_ratio_reward
@@ -73,20 +73,21 @@ class Environment:
         if not self.use_sharpe_ratio_reward:
             return portfolio_return
 
-        if not self.use_sharpe_ratio_reward:
-            return portfolio_return
-
         # time scale of around 1 decade, following eta value of paper
         eta = 0.1
         A_t = eta * portfolio_return + (1 - eta) * self.prev_A
-        B_t = eta * portfolio_return ** 2 + (1 - eta) * self.prev_B
+        B_t = eta * portfolio_return**2 + (1 - eta) * self.prev_B
 
         # deltas A and B are referenced from the paper (equation 3.3)
         delta_A = portfolio_return - self.prev_A
-        delta_B = portfolio_return ** 2 - self.prev_B
+        delta_B = portfolio_return**2 - self.prev_B
 
-        dsr_denominator = (self.prev_B - self.prev_A ** 2) ** (3 / 2)
-        diff_sharpe_ratio = (self.prev_B * delta_A - 0.5 * self.prev_A * delta_B) / dsr_denominator if dsr_denominator != 0 else 0
+        dsr_denominator = (self.prev_B - self.prev_A**2) ** (3 / 2)
+        diff_sharpe_ratio = (
+            (self.prev_B * delta_A - 0.5 * self.prev_A * delta_B) / dsr_denominator
+            if dsr_denominator != 0
+            else 0
+        )
         self.prev_A = A_t
         self.prev_B = B_t
         # I just found out for the continuous agent, the reward is simply the weighted sum
