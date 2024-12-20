@@ -13,7 +13,7 @@ python models/gradientTD.py --dsr
 Run all the models with and without differential sharpe ratio. The result will be saved at the `result/` folder (have to create it manually if not exists):
 
 ```
-python main.py [--dsr]
+python run.py [--dsr]
 ```
 
 ## Git Related
