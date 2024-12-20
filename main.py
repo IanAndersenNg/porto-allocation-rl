@@ -5,7 +5,7 @@ from models.montecarlo import MonteCarlo
 
 data = preprocess_data()
 actions = [(0, 100), (25, 75), (50, 50), (75, 25), (100, 0)]
-monte_carlo = MonteCarlo(data, actions, epsilon=0.4)
+monte_carlo = MonteCarlo(data, actions, epsilon=0.2)
 
 train_env = Environment(
     data[data["Date"] < datetime.strptime("2020-01-01", "%Y-%m-%d")])
@@ -13,7 +13,7 @@ train_env = Environment(
 test_env = Environment(
     data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")])
 
-optimum_action_dict = monte_carlo.train(10, train_env)
+optimum_action_dict = monte_carlo.train(1, train_env)
 monte_carlo_actions = monte_carlo.test(optimum_action_dict, test_env)
 
 print("Optimum state action dict : ", optimum_action_dict)

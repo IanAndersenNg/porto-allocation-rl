@@ -16,7 +16,7 @@ A monte carlo model with epsilon greedy policy.
 '''
 
 class MonteCarlo(Model):
-    def __init__(self, cleaned_data, actions, epsilon=0.5, state_space = ['11', '10', '01', '00']):
+    def __init__(self, cleaned_data, actions, epsilon=0.0, state_space = ['11', '10', '01', '00']):
         super().__init__(state_space = state_space, action_space = actions)
         self.cleaned_data = cleaned_data
         self.epsilon = epsilon
@@ -28,7 +28,7 @@ class MonteCarlo(Model):
                 for action in range(len(self.action_space))}
 
     def choose_action(self, state):
-        if random.uniform(0, 1) < self.epsilon:
+        if np.random.rand() < self.epsilon:
             return random.randint(0, len(self.action_space) - 1)  # Explore
         return np.argmax(self.calculate_average_reward(state)) # Exploit
 
