@@ -24,7 +24,7 @@ def preprocess_data():
 class Environment:
     def __init__(self, data, use_sharpe_ratio_reward = False):
         self.data = data
-        self.asset_names = [col for col in data.columns if col != "Date"]
+        self.asset_names = [col.replace("_Returns", "") for col in data.columns if col != "Date"]
         self.use_sharpe_ratio_reward = use_sharpe_ratio_reward
         self.prev_A = 0
         self.prev_B = 0
