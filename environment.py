@@ -46,8 +46,6 @@ class Environment:
             index (int): Row index
             date (string / timestamp): Row date
         """
-        #         row = self._get_row(date = date, index = index)
-        #         returns = row.iloc[1:3]
         returns = self.get_continuous_state(date=date, index=index)
         state = "".join(["1" if r > 0 else "0" for r in returns])
         return state
@@ -90,5 +88,4 @@ class Environment:
         )
         self.prev_A = A_t
         self.prev_B = B_t
-        # I just found out for the continuous agent, the reward is simply the weighted sum
         return diff_sharpe_ratio

@@ -1,6 +1,6 @@
 import argparse
 import numpy as np
-from models import Q_learning, SARSA, GradientTD, MonteCarlo
+from models import Q_learning, SARSA, GradientTD, MonteCarlo, PolicyGradient
 from datetime import datetime
 from environment import Environment, preprocess_data
 
@@ -69,7 +69,16 @@ if __name__ == "__main__":
         epsilon=0.3
     )
 
+    policy_grad_model = PolicyGradient(
+        state_space=continuous_state_space,
+        action_space=continuous_action_space,
+        model_hidden_size=8,
+        alpha=0.1,
+        gamma=0.9,
+    )
+
     main(q_learning_model, n_episodes, dsr_reward)
     main(sarsa_model, n_episodes, dsr_reward)
     main(gtd_model, n_episodes, dsr_reward)
     main(monte_carlo_model, n_episodes, dsr_reward)
+    main(policy_grad_model, n_episodes, dsr_reward)
