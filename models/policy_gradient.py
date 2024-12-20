@@ -4,9 +4,11 @@ import numpy as np
 from datetime import datetime
 from environment import Environment, preprocess_data
 from models.base_model import Model
-
+import argparse
 
 # Using a neural network to learn our policy parameters for one continuous action
+
+
 class PolicyNetwork(torch.nn.Module):
     # Takes in observations and outputs actions mu and sigma
     def __init__(self, observation_space, hidden_size):
@@ -27,7 +29,9 @@ class PolicyNetwork(torch.nn.Module):
 
 
 class PolicyGradient(Model):
-    def __init__(self, state_space, action_space, model_hidden_size, gamma=0.9, alpha=0.1):
+    def __init__(
+        self, state_space, action_space, model_hidden_size, gamma=0.9, alpha=0.1
+    ):
         self.hidden_size = model_hidden_size
         super().__init__(state_space, action_space, gamma)
         self.alpha = alpha
@@ -103,7 +107,7 @@ class PolicyGradient(Model):
 
         return G
 
-    def train(self, episode, env):
+    def learn(self, episode, env):
         """
         Given the current state (st) at the end of the current trading period and action (at),
         the allocation for next trading period, the reward (rt) is computed at the end of the next trading period based on action (at).
@@ -116,7 +120,7 @@ class PolicyGradient(Model):
             # print(episode[i])
             # print("a:", action)
             state = env.get_continuous_state(index=episode[i]).astype(float)
-#             print(state.values)
+            #             print(state.values)
             action, log_proba = self.choose_action(state.values)
             reward = env.get_reward(action, index=episode[i + 1])
             total_reward += reward
@@ -127,14 +131,14 @@ class PolicyGradient(Model):
         self.update_policy(rewards, log_proba_actions)
         self.reward_trace.append(total_reward / len(episode))
 
-    def learn(self, env, n_episodes=10, verbose_freq=None):
+    def train(self, env, n_episodes=10, verbose_freq=None):
         for i in range(n_episodes):
             if verbose_freq and not i % verbose_freq:
                 print(f"Episode {i} / {n_episodes}, Reward:", self.reward_trace[-1])
             episode = self.generate_episode(env)
 
             # self.e = np.array([0, 0])
-            self.train(episode, env)
+            self.learn(episode, env)
         return
 
     def test(self, env):
@@ -142,28 +146,37 @@ class PolicyGradient(Model):
         # Choose action every day in testing dataset
         for i in range(len(env.data)):
             state = env.get_continuous_state(index=i).astype(float)
-            action, _  = self.choose_action(np.array(state.values))
+            action, _ = self.choose_action(np.array(state.values))
             actions.append(action)
 
         result = env.data[["Date"]].reset_index(drop=True)
         result = pd.concat(
             [result, pd.DataFrame(actions, columns=env.asset_names)], axis=1
         )
-
-        return result
+        result[env.asset_names] = result[env.asset_names].shift()
+        return result.dropna().reset_index(drop=True)
 
 
 if __name__ == "__main__":  # python3 -m models.gradientTD
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--dsr",
+        action="store_true",
+        help="Sets the reward function to be differential sharpe ratio",
+    )
+    dsr_reward = parser.parse_args().dsr
     data = preprocess_data()
     data[["AGG_Returns", "MSCI_Returns"]] = (
         data[["AGG_Returns", "MSCI_Returns"]] / 100
     )  # rescale for pytoch linear
     train_env = Environment(
-        data[data["Date"] < datetime.strptime("2020-01-01", "%Y-%m-%d")]
+        data[data["Date"] < datetime.strptime("2020-01-01", "%Y-%m-%d")],
+        use_sharpe_ratio_reward=dsr_reward,
     )
 
     test_env = Environment(
-        data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")]
+        data[data["Date"] >= datetime.strptime("2019-12-31", "%Y-%m-%d")],
+        use_sharpe_ratio_reward=dsr_reward,
     )
     PG = PolicyGradient(
         state_space=np.array([-np.inf, np.inf]),
@@ -172,7 +185,7 @@ if __name__ == "__main__":  # python3 -m models.gradientTD
         alpha=0.1,
         gamma=0.9,
     )
-    PG.learn(train_env, 100, verbose_freq=10)
+    PG.train(train_env, 100, verbose_freq=10)
     # plt.plot(GTD.reward_trace)
     result = PG.test(test_env)
     print(result)
