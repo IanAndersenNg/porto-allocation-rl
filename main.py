@@ -1,5 +1,6 @@
 from environment import Environment, preprocess_data
 from datetime import datetime
+from models.base_model import Model
 from models.montecarlo import MonteCarlo
 
 data = preprocess_data()
@@ -8,6 +9,7 @@ monte_carlo = MonteCarlo(data, actions, epsilon=0.4)
 
 train_env = Environment(
     data[data["Date"] < datetime.strptime("2020-01-01", "%Y-%m-%d")])
+
 test_env = Environment(
     data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")])
 
