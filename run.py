@@ -1,6 +1,6 @@
 import argparse
 import numpy as np
-from models import Q_learning, SARSA, GradientTD
+from models import Q_learning, SARSA, GradientTD, MonteCarlo
 from datetime import datetime
 from environment import Environment, preprocess_data
 
@@ -23,6 +23,7 @@ def main(algo, n_episodes, dsr):
         use_sharpe_ratio_reward=dsr_reward,
     )
     algo.train(train_env, n_episodes=n_episodes, verbose_freq=n_episodes // 10)
+    algo.test(train_env).to_csv(f"{result_folder}/train_{result_file_name}", index=False)
     result = algo.test(test_env)
     result.to_csv(f"{result_folder}/{result_file_name}", index=False)
 
@@ -63,6 +64,12 @@ if __name__ == "__main__":
         gamma=0.9,
     )
 
+    monte_carlo_model = MonteCarlo(
+        discrete_action_space,
+        epsilon=0.3
+    )
+
     main(q_learning_model, n_episodes, dsr_reward)
     main(sarsa_model, n_episodes, dsr_reward)
     main(gtd_model, n_episodes, dsr_reward)
+    main(monte_carlo_model, n_episodes, dsr_reward)

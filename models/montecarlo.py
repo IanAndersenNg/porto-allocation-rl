@@ -16,6 +16,8 @@ A monte carlo model with epsilon greedy policy.
 '''
 
 class MonteCarlo(Model):
+    name = "Monte Carlo"
+
     def __init__(self, actions, epsilon=0.0, state_space = ['11', '10', '01', '00']):
         super().__init__(state_space = state_space, action_space = actions)
         self.epsilon = epsilon
@@ -75,9 +77,9 @@ class MonteCarlo(Model):
         return self.optimum_action_dict
     
 
-    def train(self, episodes, train_env):
+    def train(self, train_env, n_episodes=100, verbose_freq=None):
 
-        for i in range(episodes):
+        for i in range(n_episodes):
             episode_indexes  = self.generate_episode(train_env)
 
             for t in episode_indexes:
@@ -90,6 +92,9 @@ class MonteCarlo(Model):
         
         print("State action dict after all episodes: ")
         print(self.pretty_print_state_action_dict(self.state_action_dict))
+
+        print("Q table:")
+        self.print_q_table(self.state_action_dict)
 
         self.optimum_action_dict = {
             state: np.argmax(self.calculate_average_reward(state))
@@ -145,3 +150,17 @@ class MonteCarlo(Model):
             table.append(row)
 
         print(tabulate(table, headers="firstrow", tablefmt="grid"))
+
+    def print_q_table(self, dict):
+        states = sorted(set(state for state, action in dict.keys()))
+
+        q_table = []
+
+        for state in states:
+            q_row = self.calculate_average_reward(state)
+            q_table.append(q_row)
+
+        df_q_table = pd.DataFrame(
+            q_table, index=states, columns=self.action_space
+        )
+        print(df_q_table)
