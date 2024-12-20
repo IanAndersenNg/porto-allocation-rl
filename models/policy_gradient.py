@@ -29,6 +29,8 @@ class PolicyNetwork(torch.nn.Module):
 
 
 class PolicyGradient(Model):
+    name = "policy_gradient"
+
     def __init__(
         self, state_space, action_space, model_hidden_size, gamma=0.9, alpha=0.1
     ):
