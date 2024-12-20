@@ -1,14 +1,15 @@
 from datetime import datetime
 import numpy as np
 import pandas as pd
-import random
 import matplotlib.pyplot as plt
-from models.Model import Model
+from models.base_model import Model
 from environment import Environment, preprocess_data
 import argparse
 
 
 class Q_learning(Model):
+    name = "q_learning"
+
     def __init__(
         self,
         state_space,
@@ -27,15 +28,10 @@ class Q_learning(Model):
         self.reward_trace = []
         self.episode_reward = []
 
-        print(f"State space length: {len(self.state_space)}")
+        # print(f"State space length: {len(self.state_space)}")
 
     def initialize_policy(self):
         return np.zeros((len(self.state_space), len(self.action_space)))
-
-    def generate_episode(self, env, min_length=4):
-        start = random.randint(0, len(env.data) - min_length)
-        end = random.randint(start + min_length, len(env.data))
-        return [i for i in range(start, end)]
 
     def choose_action(self, state):
         state_index = self.state_indices[state]
@@ -53,7 +49,7 @@ class Q_learning(Model):
             reward + self.discount_factor * max_future_q - current_q
         )
 
-    def train(self, episode, env):
+    def learn(self, episode, env):
         total_reward = 0
         for i in range(len(episode) - 1):
             # get discrete state and convert it to the index in the q table
@@ -75,7 +71,7 @@ class Q_learning(Model):
         self.reward_trace.append(total_reward / len(episode))
         self.episode_reward.append(total_reward)
 
-    def learn(self, env, n_episodes=100, verbose_freq=None):
+    def train(self, env, n_episodes=100, verbose_freq=None):
         for episode_idx in range(n_episodes):
             episode = self.generate_episode(env)
 
@@ -84,7 +80,7 @@ class Q_learning(Model):
                 print(f"Starting episode {episode_idx+1}/{n_episodes}")
 
             # Train on this episode
-            self.train(episode, env)
+            self.learn(episode, env)
 
             # Optional: Print progress every 10 episodes
             if verbose_freq and (episode_idx + 1) % verbose_freq == 0:
@@ -112,8 +108,9 @@ class Q_learning(Model):
         result = pd.concat(
             [result, pd.DataFrame(actions, columns=env.asset_names)], axis=1
         )
+        result[env.asset_names] = result[env.asset_names].shift()
 
-        return result
+        return result.dropna().reset_index(drop=True)
 
     def plot_rewards(self):
         # Plotting the total reward per episode
@@ -134,11 +131,13 @@ class Q_learning(Model):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dsr', action='store_true', help='Sets the reward function to be differential sharpe ratio')
+    parser.add_argument(
+        "--dsr",
+        action="store_true",
+        help="Sets the reward function to be differential sharpe ratio",
+    )
     dsr_reward = parser.parse_args().dsr
-
     data = preprocess_data()
-    env = Environment(data=data)
     print("Columns:", data.columns)
 
     data[["AGG_Returns", "MSCI_Returns"]] = data[["AGG_Returns", "MSCI_Returns"]]
@@ -146,13 +145,12 @@ if __name__ == "__main__":
     # train and test environment
     train_env = Environment(
         data[data["Date"] < datetime.strptime("2020-01-01", "%Y-%m-%d")],
-        use_sharpe_ratio_reward = dsr_reward
+        use_sharpe_ratio_reward=dsr_reward,
     )
     test_env = Environment(
-        data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")],
-        use_sharpe_ratio_reward = dsr_reward
+        data[data["Date"] >= datetime.strptime("2019-12-31", "%Y-%m-%d")],
+        use_sharpe_ratio_reward=dsr_reward,
     )
-
     # define space
     state_space = ["11", "10", "01", "00"]
     # action_space = [(0, 100), (25, 75), (50, 50), (75, 25), (100, 0)]
@@ -174,7 +172,7 @@ if __name__ == "__main__":
     )
 
     # train model
-    q_learning_model.learn(train_env, n_episodes=num_episodes, verbose_freq=100)
+    q_learning_model.train(train_env, n_episodes=num_episodes, verbose_freq=100)
 
     # output q-table
     print("Q-table after training:")

@@ -6,6 +6,8 @@ import argparse
 
 
 class SARSA(Q_learning):
+    name = "sarsa"
+
     def update_policy(self, state, action, reward, next_state):
         state_index = self.state_indices[state]
         next_state_index = self.state_indices[next_state]
@@ -28,7 +30,11 @@ class SARSA(Q_learning):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dsr', action='store_true', help='Sets the reward function to be differential sharpe ratio')
+    parser.add_argument(
+        "--dsr",
+        action="store_true",
+        help="Sets the reward function to be differential sharpe ratio",
+    )
     dsr_reward = parser.parse_args().dsr
 
     data = preprocess_data()
@@ -37,11 +43,11 @@ if __name__ == "__main__":
     # train and test environment
     train_env = Environment(
         data[data["Date"] < datetime.strptime("2020-01-01", "%Y-%m-%d")],
-        use_sharpe_ratio_reward = dsr_reward
+        use_sharpe_ratio_reward=dsr_reward,
     )
     test_env = Environment(
-        data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")],
-        use_sharpe_ratio_reward = dsr_reward
+        data[data["Date"] >= datetime.strptime("2019-12-31", "%Y-%m-%d")],
+        use_sharpe_ratio_reward=dsr_reward,
     )
 
     # define space
@@ -65,7 +71,7 @@ if __name__ == "__main__":
     )
 
     # train model
-    sarsa_model.learn(train_env, n_episodes=num_episodes, verbose_freq=100)
+    sarsa_model.train(train_env, n_episodes=num_episodes, verbose_freq=100)
 
     # output q-table
     print("Q-table after training:")

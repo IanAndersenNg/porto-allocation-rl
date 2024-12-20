@@ -1,24 +1,14 @@
 from datetime import datetime
 import random
+import pandas as pd
 import numpy as np
 import torch
-# import sys
-# import os
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-# import environment
 from environment import Environment, preprocess_data
 from models.base_model import Model
 import argparse
 
-# import sys
 
-# sys.path.append("../")
-
-
-# import matplotlib.pyplot as plt
-
-
-class Net(torch.nn.Module):
+class ValueNet(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.linear = torch.nn.Linear(1, 1)
@@ -28,6 +18,8 @@ class Net(torch.nn.Module):
 
 
 class GradientTD(Model):
+    name = "gradientTD"
+
     def __init__(
         self, state_space, action_space, gamma=0.9, lambda_=0.9, alpha=0.1, epsilon=0.01
     ):
@@ -39,7 +31,7 @@ class GradientTD(Model):
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.alpha)
 
     def initialize_policy(self):
-        self.model = Net()
+        self.model = ValueNet()
 
     def choose_action(self):
         # Note that the policy does not depends on the state as described in the paper
@@ -63,7 +55,7 @@ class GradientTD(Model):
         self.model.linear.weight.data.clamp_(self.action_space[0], self.action_space[1])
         return
 
-    def train(self, episode, env):
+    def learn(self, episode, env):
         """
         Given the current state (st) at the end of the current trading period and action (at),
         the allocation for next trading period, the reward (rt) is computed at the end of the next trading period based on action (at).
@@ -85,7 +77,7 @@ class GradientTD(Model):
             self.update_policy(state, action, reward, next_state)
         self.reward_trace.append(total_reward / len(episode))
 
-    def learn(self, env, n_episodes=10, verbose_freq=None):
+    def train(self, env, n_episodes=10, verbose_freq=None):
         for i in range(n_episodes):
             if verbose_freq and not i % verbose_freq:
                 # print(self.theta)
@@ -97,23 +89,27 @@ class GradientTD(Model):
                 )
             episode = self.generate_episode(env)
             # self.e = np.array([0, 0])
-            self.train(episode, env)
+            self.learn(episode, env)
         return
 
     def test(self, env):
         action = self.choose_action()
-        result = env.data[["Date"]]
-        # Not sure if this is the right way to calcuate return
-        result["Return"] = (
-            action[0] * env.data[env.asset_names[0]]
-            + action[1] * env.data[env.asset_names[1]]
+        result = env.data[["Date"]].reset_index(drop=True)
+        actions = [action] * len(result)
+        result = pd.concat(
+            [result, pd.DataFrame(actions, columns=env.asset_names)], axis=1
         )
-        return result
+        result[env.asset_names] = result[env.asset_names].shift()
+        return result.dropna().reset_index(drop=True)
 
 
 if __name__ == "__main__":  # python3 -m models.gradientTD
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dsr', action='store_true', help='Sets the reward function to be differential sharpe ratio')
+    parser.add_argument(
+        "--dsr",
+        action="store_true",
+        help="Sets the reward function to be differential sharpe ratio",
+    )
     dsr_reward = parser.parse_args().dsr
 
     data = preprocess_data()
@@ -122,12 +118,12 @@ if __name__ == "__main__":  # python3 -m models.gradientTD
     )  # rescale for pytoch linear
     train_env = Environment(
         data[data["Date"] < datetime.strptime("2020-01-01", "%Y-%m-%d")],
-        use_sharpe_ratio_reward = dsr_reward
+        use_sharpe_ratio_reward=dsr_reward,
     )
 
     test_env = Environment(
         data[data["Date"] >= datetime.strptime("2020-01-01", "%Y-%m-%d")],
-        use_sharpe_ratio_reward = dsr_reward
+        use_sharpe_ratio_reward=dsr_reward,
     )
     GTD = GradientTD(
         state_space=np.array([-np.inf, np.inf]),
@@ -136,7 +132,7 @@ if __name__ == "__main__":  # python3 -m models.gradientTD
         alpha=0.1,
         gamma=0.9,
     )
-    GTD.learn(train_env, 100, verbose_freq=10)
+    GTD.train(train_env, 100, verbose_freq=10)
     print("trained action:", GTD.choose_action())
     # plt.plot(GTD.reward_trace)
     result = GTD.test(test_env)
