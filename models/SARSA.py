@@ -8,7 +8,7 @@ import argparse
 class SARSA(Q_learning):
     name = "sarsa"
 
-    def update_policy(self, state, action, reward, next_state):
+    def update_q_value(self, state, action, reward, next_state):
         state_index = self.state_indices[state]
         next_state_index = self.state_indices[next_state]
         action_index = self.action_indices[action]
